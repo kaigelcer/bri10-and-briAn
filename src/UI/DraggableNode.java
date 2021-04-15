@@ -5,22 +5,30 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Scale;
 
-class DraggableNode extends Pane {
+import java.util.LinkedList;
+
+public class DraggableNode extends StackPane {
 
     // node position
     private double x = 0;
     private double y = 0;
+
     // mouse position
     private double mousex = 0;
     private double mousey = 0;
+    private LinkedList<DraggableNode> allDraggableNodes;
     private Node view;
-    private boolean dragging = false;
+    private boolean selected = false;
+    private boolean dragging = true;
     private boolean moveToFront = true;
     private Scale scaleTransform;
-    private boolean zoomable = true;
+    private Rotate rotateTransform;
+    private double rotationAngle = 0;
+    private boolean zoomable = false;
     private double minScale = 0.1;
     private double maxScale = 10;
     private double scaleIncrement = 0.001;
@@ -29,6 +37,7 @@ class DraggableNode extends Pane {
     private boolean RESIZE_LEFT;
     private boolean RESIZE_BOTTOM;
     private boolean RESIZE_RIGHT;
+    private String url;
 
     public DraggableNode() {
         init();
@@ -47,11 +56,20 @@ class DraggableNode extends Pane {
         scaleTransform.setPivotY(0);
         scaleTransform.setPivotZ(0);
 
+        // ADDED BY ME
+        rotateTransform = new Rotate();
+        rotateTransform.setPivotX(300);
+        rotateTransform.setPivotY(100);
+
         getTransforms().add(scaleTransform);
+        getTransforms().add(rotateTransform);
+
+
 
         onMousePressedProperty().set(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
+                setSelected();
 
                 final Node n = DraggableNode.this;
 
@@ -80,6 +98,10 @@ class DraggableNode extends Pane {
             @Override
             public void handle(MouseEvent event) {
 
+                setSelected();
+                System.out.println("X: " + DraggableNode.this.x);
+                System.out.println("Y: " + DraggableNode.this.y);
+
                 final Node n = DraggableNode.this;
 
                 final double parentScaleX = n.getParent().localToSceneTransformProperty().getValue().getMxx();
@@ -92,7 +114,6 @@ class DraggableNode extends Pane {
 
                 double offsetX = event.getSceneX() - mousex;
                 double offsetY = event.getSceneY() - mousey;
-
                 if (resizeMode == ResizeMode.NONE) {
 
                     x += offsetX;
@@ -164,6 +185,7 @@ class DraggableNode extends Pane {
             public void handle(MouseEvent event) {
 
                 dragging = false;
+                setSelected();
             }
         });
 
@@ -191,9 +213,9 @@ class DraggableNode extends Pane {
                 boolean right = diffMaxX * scaleX < border;
                 boolean bottom = diffMaxY * scaleY < border;
 
-                RESIZE_TOP = false;
+                RESIZE_TOP = true;
                 RESIZE_LEFT = false;
-                RESIZE_BOTTOM = false;
+                RESIZE_BOTTOM = true;
                 RESIZE_RIGHT = false;
 
                 if (left && !top && !bottom) {
@@ -267,6 +289,65 @@ class DraggableNode extends Pane {
             }
         });
 
+    }
+
+    public void setAllDraggableNodes(LinkedList<DraggableNode> nodes){
+        allDraggableNodes = nodes;
+        allDraggableNodes.add(this);
+    }
+
+    public void rotate90(){
+        rotationAngle += 90;
+        setRotate(rotationAngle);
+    }
+
+    public void setSelected(){
+        selected = true;
+        for (DraggableNode node : allDraggableNodes){
+            if(node != this){
+                node.notSelected();
+            }
+        }
+    }
+
+    public void flipHorizontal(){
+        this.setScaleX(this.getScaleX() * -1);
+    }
+
+    public void flipVertical(){
+        this.setScaleY(this.getScaleY() * -1);
+    }
+
+    public void notSelected(){
+        this.selected = false;
+    }
+
+    public boolean isSelected(){
+        return selected;
+    }
+
+    public void setUrl(String url){
+        this.url = url;
+    }
+
+    public String getUrl(){
+        return url;
+    }
+
+    public double getX(){
+        return x;
+    }
+
+    public double getY(){
+        return y;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public void setY(double y) {
+        this.y = y;
     }
 
     /**
